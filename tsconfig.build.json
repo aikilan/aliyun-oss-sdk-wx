@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "noEmit": false,
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["wechat-miniprogram"]
+  },
+  "include": ["src/**/*.ts", "src/utils/**/*.js"],
+  "exclude": ["test", "dist", "node_modules"]
+}

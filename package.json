@@ -1,0 +1,22 @@
+{
+  "name": "aliyun-oss-sdk-wx",
+  "version": "2.0.0",
+  "description": "Aliyun OSS SDK for WeChat Mini Program",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "miniprogram": "dist",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "test": "node --import tsx --test ./test/**/*.test.ts"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "fast-xml-parser": "^4.5.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/wechat-miniprogram": "^3.4.9",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}
