@@ -1,22 +1,28 @@
 # aliyun-oss-sdk-wx
 
-微信小程序环境下的 OSS 对象客户端实现，API 风格对齐 Browser.js 核心对象能力。
+微信小程序 OSS SDK（npm 包）。
+
+定位：面向业务项目直接接入，提供 Browser.js 核心对象 API（对象上传/下载/分片/签名 URL）。
 
 ## QuickStart
 
-### 1. 安装依赖并构建
+### 1. 安装
 
 ```bash
-npm install wx
-npm run build
+npm install aliyun-oss-sdk-wx
 ```
 
-构建后产物在 `dist/`，入口为 `dist/index.js`。
+### 2. 小程序工程启用 npm
 
-### 2. 初始化客户端
+在微信开发者工具中：
+
+1. 勾选「使用 npm 模块」
+2. 点击「工具 -> 构建 npm」
+
+### 3. 初始化客户端
 
 ```ts
-import Client from './dist/index'
+import Client from 'aliyun-oss-sdk-wx'
 
 const client = new Client({
   bucket: 'your-bucket',
@@ -28,7 +34,7 @@ const client = new Client({
   retryMax: 1,
   refreshSTSTokenInterval: 300,
   refreshSTSToken: async () => {
-    // 由业务服务端返回最新 STS
+    // 从你的业务服务端获取最新 STS
     const sts = await getSTSFromServer()
     return {
       accessKeyId: sts.accessKeyId,
@@ -39,9 +45,15 @@ const client = new Client({
 })
 ```
 
-## Examples
+如果你的项目使用 `require`：
 
-### Example 1: 直传（put）
+```js
+const Client = require('aliyun-oss-sdk-wx').default
+```
+
+## Example
+
+### 示例 1：直传（put）
 
 ```ts
 const choose = await wx.chooseMedia({
@@ -57,42 +69,56 @@ const result = await client.put('uploads/demo.mp4', {
   mime: file.type,
 })
 
-console.log(result.url, result.etag)
+console.log('url:', result.url)
+console.log('etag:', result.etag)
 ```
 
-### Example 2: 分片上传（multipartUpload）
+### 示例 2：分片上传（multipartUpload）
 
 ```ts
-const choose = await wx.chooseMedia({ count: 1, mediaType: ['video'] })
-const file = choose.tempFiles[0]
-
-let checkpoint: any = null
-
-const res = await client.multipartUpload('videos/big-file.mp4', {
-  path: file.tempFilePath,
-  size: file.size,
-  mime: file.type,
-}, {
-  partSize: 1024 * 1024, // 1MB
-  parallel: 3,
-  progress: async (percent, cp) => {
-    checkpoint = cp || checkpoint
-    console.log('progress:', Math.floor(percent * 100) + '%')
-  },
+const choose = await wx.chooseMedia({
+  count: 1,
+  mediaType: ['video'],
 })
 
-console.log('done:', res.name, res.etag)
+const file = choose.tempFiles[0]
+let checkpoint: any = null
 
-// 如需取消
+const result = await client.multipartUpload(
+  'videos/big-file.mp4',
+  {
+    path: file.tempFilePath,
+    size: file.size,
+    mime: file.type,
+  },
+  {
+    partSize: 1024 * 1024, // 1MB
+    parallel: 3,
+    progress: async (percent, cp) => {
+      checkpoint = cp || checkpoint
+      console.log('progress:', Math.floor(percent * 100) + '%')
+    },
+  },
+)
+
+console.log('done:', result.name, result.etag)
+
+// 取消上传
 // client.cancel()
 
-// 如需断点续传（使用上次 checkpoint）
-// await client.multipartUpload('videos/big-file.mp4', { path: file.tempFilePath, size: file.size, mime: file.type }, { checkpoint })
+// 断点续传（复用 checkpoint）
+// await client.multipartUpload('videos/big-file.mp4', {
+//   path: file.tempFilePath,
+//   size: file.size,
+//   mime: file.type,
+// }, {
+//   checkpoint,
+// })
 ```
 
 ## Apis
 
-### 构造参数（`new Client(options)`）
+### Client 构造参数（`new Client(options)`）
 
 - `bucket: string` 目标 Bucket
 - `endpoint: string` OSS Endpoint（支持带/不带协议）
@@ -105,7 +131,7 @@ console.log('done:', res.name, res.etag)
 - `retryMax?: number` 请求重试次数
 - `headers?: Record<string, string | number | boolean>`
 - `refreshSTSToken?: () => Promise<{ accessKeyId; accessKeySecret; stsToken }>`
-- `refreshSTSTokenInterval?: number` STS 刷新间隔（秒）
+- `refreshSTSTokenInterval?: number` 刷新间隔（秒）
 
 ### 对象操作
 
@@ -126,7 +152,7 @@ console.log('done:', res.name, res.etag)
 - `signatureUrl(name, options?, strictObjectNameValidation?)`
 - `asyncSignatureUrl(name, options?, strictObjectNameValidation?)`
 
-### 分片操作
+### 分片上传
 
 - `initMultipartUpload(name, options?)`
 - `uploadPart(name, uploadId, partNo, file, start, end, options?)`
@@ -136,14 +162,23 @@ console.log('done:', res.name, res.etag)
 - `abortMultipartUpload(name, uploadId, options?)`
 - `multipartUpload(name, file, options?)`
 
-### 任务控制与通用
+### 任务控制
 
-- `cancel(abort?)` 取消当前上传任务；可选传入 `{name, uploadId}` 同时触发 `abortMultipartUpload`
-- `isCancel()` 当前是否处于取消状态
-- `resetCancelFlag()` 重置取消标记
-- `useBucket(name)` 动态切换 bucket
-- `currentOptions` 读取当前客户端配置快照
+- `cancel(abort?)`
+- `isCancel()`
+- `resetCancelFlag()`
+- `useBucket(name)`
+- `currentOptions`
+
+## 输入文件类型
+
+`file` 支持：
+
+- `string`（本地临时文件路径）
+- `ArrayBuffer`
+- `Uint8Array`
+- `{ path: string; size?: number; mime?: string }`
 
 ## 说明
 
-- 仅覆盖 Browser.js 的核心对象 API，不包含 Bucket 管理、RTMP、ImageClient 等扩展能力。
+- 当前仅覆盖 Browser.js 核心对象 API，不包含 Bucket 管理、RTMP、ImageClient。
